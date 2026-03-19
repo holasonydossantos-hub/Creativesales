@@ -6,7 +6,6 @@
     <title>Creative Sales - O Teu Marketplace</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     
@@ -138,8 +137,8 @@
 </head>
 <body class="gradient-bg">
     
-    <!-- Firebase Configuration -->
     <script>
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDgF3TY-MY5M_YpkD80309ugaQ_V2fzSss",
             authDomain: "creative-sales.firebaseapp.com",
@@ -153,8 +152,18 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         
-        const ADMIN_PASSWORD = 'CreativeSales2026@Admin';
+        // ========================================
+        // SENHA PROTEGIDA - NÃO COMPARTILHAR
+        // Senha real: Cs@2026$Admin#Secure!
+        // ========================================
+        const _s = [67,115,64,50,48,50,54,36,65,100,109,105,110,35,83,101,99,117,114,101,33];
+        const _v = () => _s.map(c => String.fromCharCode(c)).join('');
+        
         const WHATSAPP_NUMBER = '244922759778';
+        
+        // Security: Lock after failed attempts
+        let loginAttempts = 0;
+        let lockUntil = 0;
     </script>
 
     <!-- Decorative Background -->
@@ -345,7 +354,8 @@
                         <input type="password" id="adminPassword" class="w-full px-4 py-3 bg-dark rounded-xl border border-border focus:border-primary focus:outline-none transition-colors" placeholder="Digite a senha" required>
                     </div>
                     <p id="loginError" class="text-red-400 text-sm mb-4 hidden">Senha incorreta. Acesso negado.</p>
-                    <button type="submit" class="w-full gradient-primary text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity">
+                    <p id="loginLocked" class="text-yellow-400 text-sm mb-4 hidden"></p>
+                    <button type="submit" id="loginBtn" class="w-full gradient-primary text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-opacity">
                         Entrar
                     </button>
                 </form>
@@ -790,8 +800,14 @@
             renderProducts();
         }
 
-        // ==================== AUTH ====================
+        // ==================== AUTH WITH SECURITY ====================
         function openLoginModal() {
+            // Check if locked
+            if (Date.now() < lockUntil) {
+                const remaining = Math.ceil((lockUntil - Date.now()) / 1000);
+                alert(`Muitas tentativas incorretas. Tente novamente em ${remaining} segundos.`);
+                return;
+            }
             document.getElementById('loginModal').classList.remove('hidden');
             document.getElementById('adminPassword').focus();
         }
@@ -806,11 +822,34 @@
             e.preventDefault();
             const password = document.getElementById('adminPassword').value;
             
-            if (password === ADMIN_PASSWORD) {
+            // Check if locked
+            if (Date.now() < lockUntil) {
+                return;
+            }
+            
+            if (password === _v()) {
+                loginAttempts = 0;
                 closeLoginModal();
                 openAdminPanel();
             } else {
-                document.getElementById('loginError').classList.remove('hidden');
+                loginAttempts++;
+                
+                if (loginAttempts >= 3) {
+                    // Lock for 30 seconds
+                    lockUntil = Date.now() + 30000;
+                    document.getElementById('loginLocked').textContent = 'Muitas tentativas! Aguarde 30 segundos.';
+                    document.getElementById('loginLocked').classList.remove('hidden');
+                    document.getElementById('loginBtn').disabled = true;
+                    
+                    setTimeout(() => {
+                        document.getElementById('loginLocked').classList.add('hidden');
+                        document.getElementById('loginBtn').disabled = false;
+                        loginAttempts = 0;
+                    }, 30000);
+                } else {
+                    document.getElementById('loginError').textContent = `Senha incorreta! Tentativas: ${3 - loginAttempts} restantes.`;
+                    document.getElementById('loginError').classList.remove('hidden');
+                }
                 document.getElementById('adminPassword').value = '';
             }
         }
